@@ -178,6 +178,17 @@ public class PetPetActivity extends Activity {
         iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302", "", ""));
 
         mPeerConnection = mPeerConnectionFactory.createPeerConnection(iceServers, new MediaConstraints(), new MyPeerConnectionObserver());
+
+        // State report
+        PeerConnection.SignalingState state = mPeerConnection.signalingState();
+        Log.d(TAG, "Signal state (must stable) = " + state.toString());
+
+        PeerConnection.IceConnectionState iceConnectionState = mPeerConnection.iceConnectionState();
+        Log.d(TAG, "Ice connection state (must new) = " + iceConnectionState.toString());
+
+//        PeerConnection.IceGatheringState iceGatheringState = mPeerConnection.iceGatheringState();
+//        Log.d(TAG, "Ice gathering state (must new) = " + iceGatheringState.toString());
+
         mHandler.postDelayed(checkPeerState, 10000);
 
         mPeerConnection.createOffer(new MySdpObserver(), mMediaConstraints);
