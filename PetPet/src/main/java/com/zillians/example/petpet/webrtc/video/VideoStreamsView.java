@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.zillians.example.petpet;
+package com.zillians.example.petpet.webrtc.video;
 
 import android.content.Context;
 import android.graphics.Point;

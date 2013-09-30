@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
 
+import com.zillians.example.petpet.webrtc.WebRTCWrapper;
+
 public class PetPetActivity extends Activity {
     private static final String TAG = "PetPetActivity";
 
