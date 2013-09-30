@@ -3,7 +3,7 @@ package com.zillians.example.petpet.webrtc;
 import android.os.Handler;
 import android.util.Log;
 
-import com.zillians.example.petpet.SdpHelper;
+import com.zillians.example.petpet.webrtc.sdp.SdpHelper;
 import com.zillians.example.petpet.webrtc.signal.SignalService;
 
 import org.webrtc.DataChannel;
