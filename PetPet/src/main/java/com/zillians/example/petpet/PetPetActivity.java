@@ -117,7 +117,7 @@ public class PetPetActivity extends Activity {
                     Log.d(TAG, " ---- sdp = " + iceCandidate.sdp);
                     Log.d(TAG, " ==== sdpMid = " + iceCandidate.sdpMid);
                     Log.d(TAG, " ==== sdp line index = " + iceCandidate.sdpMLineIndex);
-                    mQueuedRemoteCandidates.add(iceCandidate);
+                    sendIceCandidate(iceCandidate);
                 }
             });
         }
@@ -143,7 +143,6 @@ public class PetPetActivity extends Activity {
         }
     }
 
-
     private static final String STUN_SERVER = "stun:stun.l.google.com:19302";
     private static final String SIGNALING_SERVER = "https://apprtc.appspot.com/message?r=6666&u=80794597";
 
@@ -164,6 +163,15 @@ public class PetPetActivity extends Activity {
         }
     }
 
+    private void sendIceCandidate(IceCandidate iceCandidate) {
+        JSONObject json = new JSONObject();
+        jsonPut(json, "type", "candidate");
+        jsonPut(json, "label", iceCandidate.sdpMLineIndex);
+        jsonPut(json, "id", iceCandidate.sdpMid);
+        jsonPut(json, "candidate", iceCandidate.sdp);
+        sendMessage(json);
+    }
+
     private void sendSdp(final SessionDescription sdp) {
         Log.d(TAG, "Send sdp to the other peer");
         JSONObject json = new JSONObject();
@@ -181,6 +189,7 @@ public class PetPetActivity extends Activity {
                     connection = new URL(SIGNALING_SERVER).openConnection();
                     connection.setDoOutput(true);
                     connection.getOutputStream().write(jsonObject.toString().getBytes("UTF-8"));
+                    Log.d(TAG, "SendMessage Response: " + connection.getHeaderField(null).toString());
                     if (!connection.getHeaderField(null).startsWith("HTTP/1.1 200 ")) {
                         throw new IOException(
                                 "Non-200 response to POST: " + connection.getHeaderField(null) +
