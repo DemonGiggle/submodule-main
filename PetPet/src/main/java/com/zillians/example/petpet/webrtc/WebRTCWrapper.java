@@ -185,6 +185,7 @@ public class WebRTCWrapper {
         @Override
         public void onAddStream(MediaStream mediaStream) {
             Log.d(TAG, "PeerConnectionObserver: onAddStream");
+            mCallback.onAddStream(mediaStream);
         }
 
         @Override
