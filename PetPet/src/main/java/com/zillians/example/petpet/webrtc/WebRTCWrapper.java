@@ -196,11 +196,12 @@ public class WebRTCWrapper {
     }
 
     private static final String TURN_SERVER = "wtf-master.aws.zillians.com:3478";
+    private static final String USERNAME = "zillians";
+    private static final String PASSWORD = "izillians";
 
     private PeerConnectionFactory mPeerConnectionFactory;
     private PeerConnection mPeerConnection;
     private MediaConstraints mMediaConstraints;
-    private LinkedList<IceCandidate> mQueuedRemoteCandidates = new LinkedList<IceCandidate>();
 
     private Handler mHandler;
     private RestfulSignalService mSignalService = new RestfulSignalService();
@@ -213,16 +214,16 @@ public class WebRTCWrapper {
 
         // Specify what data to transfer
         mMediaConstraints = new MediaConstraints();
-//        mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-//                "OfferToReceiveAudio", "true"));
-//        mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-//                "OfferToReceiveVideo", "true"));
+        mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                "OfferToReceiveAudio", "true"));
+        mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+                "OfferToReceiveVideo", "true"));
     }
 
     public void start() {
          // Hard code ice servers
         List<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
-        iceServers.add(new PeerConnection.IceServer(TURN_SERVER));
+        iceServers.add(new PeerConnection.IceServer(TURN_SERVER, USERNAME, PASSWORD));
 
         mPeerConnection = mPeerConnectionFactory.createPeerConnection(iceServers, mMediaConstraints, new PeerConnectionObserver());
 
