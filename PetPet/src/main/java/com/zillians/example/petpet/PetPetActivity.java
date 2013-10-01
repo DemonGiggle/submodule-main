@@ -22,6 +22,7 @@ public class PetPetActivity extends Activity {
     protected void onResume() {
         super.onResume();
         mWebRTCWrapper = new WebRTCWrapper();
+        mWebRTCWrapper.start();
     }
 
     @Override

@@ -161,8 +161,10 @@ public class WebRTCWrapper {
 //                "OfferToReceiveAudio", "true"));
 //        mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
 //                "OfferToReceiveVideo", "true"));
+    }
 
-        // Hard code ice servers
+    public void start() {
+         // Hard code ice servers
         List<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
         iceServers.add(new PeerConnection.IceServer(STUN_SERVER, "", ""));
 
@@ -183,6 +185,10 @@ public class WebRTCWrapper {
         mPeerConnection.createOffer(new MySdpObserver(), mMediaConstraints);
 
         Log.d(TAG, "Peer Connection created");
+    }
+
+    public void stop() {
+
     }
 
     private Runnable checkPeerState = new Runnable() {
