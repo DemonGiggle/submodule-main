@@ -195,7 +195,7 @@ public class WebRTCWrapper {
         }
     }
 
-    private static final String TURN_SERVER = "wtf-master.aws.zillians.com:3478";
+    private static final String TURN_SERVER = "turn:wtf-master.aws.zillians.com:3478";
     private static final String USERNAME = "zillians";
     private static final String PASSWORD = "izillians";
 
