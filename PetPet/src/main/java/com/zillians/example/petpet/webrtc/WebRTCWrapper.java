@@ -23,7 +23,6 @@ import org.webrtc.StatsObserver;
 import org.webrtc.StatsReport;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -31,6 +30,10 @@ import java.util.List;
  */
 public class WebRTCWrapper {
     private static final String TAG = "WebRTCWrapper";
+
+    public interface OnWebRTCCallback {
+        public void onAddStream(final MediaStream stream);
+    }
 
     class SdpObserver implements org.webrtc.SdpObserver {
 
@@ -206,6 +209,8 @@ public class WebRTCWrapper {
     private Handler mHandler;
     private RestfulSignalService mSignalService = new RestfulSignalService();
 
+    private OnWebRTCCallback mCallback;
+
     public WebRTCWrapper(Context context) {
         mHandler = new Handler();
 
@@ -218,6 +223,10 @@ public class WebRTCWrapper {
                 "OfferToReceiveAudio", "true"));
         mMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
                 "OfferToReceiveVideo", "true"));
+    }
+
+    public void setOnWebRTCCallback(OnWebRTCCallback callback) {
+        mCallback = callback;
     }
 
     public void start() {
