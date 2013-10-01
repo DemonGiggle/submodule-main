@@ -1,18 +1,23 @@
 package com.zillians.example.petpet.webrtc;
 
+import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
 
 import com.zillians.example.petpet.webrtc.sdp.SdpHelper;
+import com.zillians.example.petpet.webrtc.signal.RestfulSignalService;
 import com.zillians.example.petpet.webrtc.signal.SignalService;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.webrtc.DataChannel;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.StatsObserver;
 import org.webrtc.StatsReport;
@@ -27,7 +32,7 @@ import java.util.List;
 public class WebRTCWrapper {
     private static final String TAG = "WebRTCWrapper";
 
-    class MySdpObserver implements SdpObserver {
+    class SdpObserver implements org.webrtc.SdpObserver {
 
         @Override
         public void onCreateSuccess(final SessionDescription sessionDescription) {
@@ -37,42 +42,53 @@ public class WebRTCWrapper {
 
             mHandler.post(new Runnable() {
                 public void run() {
-                    Log.d(TAG, "SdpObserver: Set local description");
-                    SessionDescription sdp = new SessionDescription(
+                    final SessionDescription localSdp = new SessionDescription(
                             sessionDescription.type, SdpHelper.preferISAC(sessionDescription.description));
-                    mPeerConnection.setLocalDescription(MySdpObserver.this, sdp);
 
                     // Pass my description to the other peer
-                    mSignalService.sendSdp(sessionDescription);
+                    mSignalService.asyncSendOffer(sessionDescription, new SignalService.OnCallback() {
+                        @Override
+                        public void onFailCallback(String error) {
+
+                        }
+
+                        @Override
+                        public void onSuccessCallback(String response) {
+                            Log.d(TAG, "SdpObserver: Set local and remote description");
+                            mPeerConnection.setLocalDescription(SdpObserver.this, localSdp);
+                            mPeerConnection.setRemoteDescription(SdpObserver.this,
+                                    new SessionDescription(SessionDescription.Type.ANSWER, response));
+                        }
+                    });
                 }
             });
         }
 
-        private void drainRemoteCandidates() {
-            for (IceCandidate candidate : mQueuedRemoteCandidates) {
-                mPeerConnection.addIceCandidate(candidate);
-            }
-            mQueuedRemoteCandidates.clear();
-        }
+//        private void drainRemoteCandidates() {
+//            for (IceCandidate candidate : mQueuedRemoteCandidates) {
+//                mPeerConnection.addIceCandidate(candidate);
+//            }
+//            mQueuedRemoteCandidates.clear();
+//        }
 
         @Override
         public void onSetSuccess() {
             Log.d(TAG, "SdpObserver: onSetSuccess");
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (mPeerConnection.getLocalDescription() == null) {
-                        // We just set the remote offer, time to create our answer.
-                        Log.d(TAG, "SdpObserver: Creating answer");
-                        mPeerConnection.createAnswer(MySdpObserver.this, mMediaConstraints);
-                    } else {
-                        Log.d(TAG, "SdpObserver: drain remote candidates");
-                        // Sent our answer and set it as local description; drain
-                        // candidates.
-                        drainRemoteCandidates();
-                    }
-                }
-            });
+//            mHandler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    if (mPeerConnection.getLocalDescription() == null) {
+//                        // We just set the remote offer, time to create our answer.
+//                        Log.d(TAG, "SdpObserver: Creating answer");
+//                        mPeerConnection.createAnswer(SdpObserver.this, mMediaConstraints);
+//                    } else {
+//                        Log.d(TAG, "SdpObserver: drain remote candidates");
+//                        // Sent our answer and set it as local description; drain
+//                        // candidates.
+//                        drainRemoteCandidates();
+//                    }
+//                }
+//            });
         }
 
         @Override
@@ -86,7 +102,9 @@ public class WebRTCWrapper {
         }
     }
 
-    class MyPeerConnectionObserver implements PeerConnection.Observer {
+    class PeerConnectionObserver implements PeerConnection.Observer {
+
+        private List<IceCandidate> mCandidates = new ArrayList<IceCandidate>();
 
         @Override
         public void onSignalingChange(PeerConnection.SignalingState signalingState) {
@@ -101,6 +119,44 @@ public class WebRTCWrapper {
         @Override
         public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
             Log.d(TAG, "PeerConnectionObserver: onIceGatheringChange");
+            if (iceGatheringState != PeerConnection.IceGatheringState.COMPLETE) return;
+
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "Prepare to send candidates to peer");
+                    mSignalService.asyncSendIceCandidates(mCandidates, new SignalService.OnCallback() {
+                        @Override
+                        public void onFailCallback(String error) {
+
+                        }
+
+                        @Override
+                        public void onSuccessCallback(String response) {
+                            receiveRemoteCandidates(response);
+                        }
+                    });
+                }
+            });
+        }
+
+        private void receiveRemoteCandidates(String response) {
+            JSONTokener tokenizer = new JSONTokener(response);
+            try {
+                JSONArray candidates = new JSONArray(tokenizer);
+                for(int i=0; i<candidates.length(); i++){
+                    JSONObject candidateObject = candidates.getJSONObject(i);
+                    IceCandidate candidate =new IceCandidate(
+                            candidateObject.getString("sdpMid"),
+                            candidateObject.getInt("sdpMLineIndex"),
+                            candidateObject.getString("candidate"));
+                    Log.d(TAG, "adding new ice candidate: " + candidate);
+                    mPeerConnection.addIceCandidate(candidate);
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -113,7 +169,7 @@ public class WebRTCWrapper {
                     Log.d(TAG, " ---- sdp = " + iceCandidate.sdp);
                     Log.d(TAG, " ==== sdpMid = " + iceCandidate.sdpMid);
                     Log.d(TAG, " ==== sdp line index = " + iceCandidate.sdpMLineIndex);
-                    mSignalService.sendIceCandidate(iceCandidate);
+                    mCandidates.add(iceCandidate);
                 }
             });
         }
@@ -139,7 +195,7 @@ public class WebRTCWrapper {
         }
     }
 
-    private static final String STUN_SERVER = "stun:stun.l.google.com:19302";
+    private static final String TURN_SERVER = "wtf-master.aws.zillians.com:3478";
 
     private PeerConnectionFactory mPeerConnectionFactory;
     private PeerConnection mPeerConnection;
@@ -147,12 +203,12 @@ public class WebRTCWrapper {
     private LinkedList<IceCandidate> mQueuedRemoteCandidates = new LinkedList<IceCandidate>();
 
     private Handler mHandler;
-    private SignalService mSignalService = new SignalService();
+    private RestfulSignalService mSignalService = new RestfulSignalService();
 
-    public WebRTCWrapper() {
+    public WebRTCWrapper(Context context) {
         mHandler = new Handler();
 
-        PeerConnectionFactory.initializeAndroidGlobals(this);
+        PeerConnectionFactory.initializeAndroidGlobals(context);
         mPeerConnectionFactory = new PeerConnectionFactory();
 
         // Specify what data to transfer
@@ -166,9 +222,9 @@ public class WebRTCWrapper {
     public void start() {
          // Hard code ice servers
         List<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
-        iceServers.add(new PeerConnection.IceServer(STUN_SERVER, "", ""));
+        iceServers.add(new PeerConnection.IceServer(TURN_SERVER));
 
-        mPeerConnection = mPeerConnectionFactory.createPeerConnection(iceServers, new MediaConstraints(), new MyPeerConnectionObserver());
+        mPeerConnection = mPeerConnectionFactory.createPeerConnection(iceServers, mMediaConstraints, new PeerConnectionObserver());
 
         // State report
         PeerConnection.SignalingState state = mPeerConnection.signalingState();
@@ -180,10 +236,8 @@ public class WebRTCWrapper {
 //        PeerConnection.IceGatheringState iceGatheringState = mPeerConnection.iceGatheringState();
 //        Log.d(TAG, "Ice gathering state (must new) = " + iceGatheringState.toString());
 
-        mHandler.postDelayed(checkPeerState, 10000);
-
-        mPeerConnection.createOffer(new MySdpObserver(), mMediaConstraints);
-
+//        mHandler.postDelayed(checkPeerState, 10000);
+        mPeerConnection.createOffer(new SdpObserver(), mMediaConstraints);
         Log.d(TAG, "Peer Connection created");
     }
 
