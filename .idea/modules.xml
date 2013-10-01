@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/PetPet/PetPet.iml" filepath="$PROJECT_DIR$/PetPet/PetPet.iml" />
       <module fileurl="file://$PROJECT_DIR$/PetPetProject.iml" filepath="$PROJECT_DIR$/PetPetProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/library/android-async-http/library/android-async-http.iml" filepath="$PROJECT_DIR$/library/android-async-http/library/android-async-http.iml" />
+      <module fileurl="file://$PROJECT_DIR$/petpet.iml" filepath="$PROJECT_DIR$/petpet.iml" />
     </modules>
   </component>
 </project>

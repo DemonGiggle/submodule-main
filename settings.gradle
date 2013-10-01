@@ -1,1 +1,1 @@
-include ':PetPet'
+include ':PetPet', ':library:android-async-http'
